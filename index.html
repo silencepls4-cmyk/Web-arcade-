@@ -1,0 +1,418 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#090d16">
+  <meta name="description" content="Play retro mini arcade games offline and online directly in your browser vs AI or friends.">
+  <title>CyberArcade - Offline & Online Web Mini-Games</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            cyberDark: '#080c14',
+            cyberCard: '#101726',
+            neonBlue: '#00f0ff',
+            neonPink: '#ff007f',
+            neonGreen: '#00ff66',
+            neonAmber: '#ffaa00'
+          },
+          boxShadow: {
+            'glow-cyan': '0 0 15px rgba(0, 240, 255, 0.45)',
+            'glow-pink': '0 0 15px rgba(255, 0, 127, 0.45)',
+            'glow-green': '0 0 15px rgba(0, 255, 102, 0.45)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;700&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #080c14;
+      color: #e2e8f0;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .font-arcade {
+      font-family: 'Orbitron', monospace, sans-serif;
+    }
+
+    /* Cyber scanline effect overlay */
+    .scanlines {
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      background-size: 100% 3px, 4px 100%;
+      pointer-events: none;
+    }
+
+    .tic-tac-cell {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .tic-tac-cell:hover:not(:disabled) {
+      transform: scale(0.97);
+      background-color: #1a253c;
+    }
+
+    /* Prevent default bounce on mobile game view */
+    canvas {
+      touch-action: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-cyberDark text-slate-100 overflow-x-hidden relative">
+  <div class="fixed inset-0 scanlines z-40 pointer-events-none"></div>
+
+  <header class="w-full bg-cyberCard/80 backdrop-blur-md border-b border-cyan-500/20 sticky top-0 z-50 px-4 py-3">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-2 cursor-pointer" onclick="showView('hub')">
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-cyan-500 to-pink-500 flex items-center justify-center text-xl shadow-glow-cyan">
+          🕹️
+        </div>
+        <div>
+          <span class="font-arcade font-bold text-lg tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-neonBlue to-neonPink">
+            CYBER ARCADE
+          </span>
+          <span class="hidden sm:inline-block ml-2 text-xs uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-medium">
+            Offline Ready
+          </span>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <button id="audioToggleBtn" onclick="toggleAudio()" class="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-xs font-semibold flex items-center gap-1.5 transition">
+          <span id="audioIcon">🔊</span> <span class="hidden sm:inline">Audio</span>
+        </button>
+        <button id="pwaInstallBtn" class="hidden px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 text-xs font-bold font-arcade tracking-wide shadow-glow-cyan transition">
+          ⬇ Install App
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-grow max-w-6xl w-full mx-auto px-4 py-6 z-10">
+    <!-- VIEW: ARCADE HUB (GAMES SELECTOR) -->
+    <section id="view-hub" class="space-y-6">
+      <div class="text-center space-y-2 py-4">
+        <h1 class="text-2xl sm:text-4xl font-black font-arcade text-white tracking-wide">
+          CHOOSE YOUR <span class="text-neonBlue">BATTLE</span>
+        </h1>
+        <p class="text-slate-400 text-sm max-w-xl mx-auto">
+          Play standalone mini-games right inside your browser. Play offline anytime or battle intelligent AI computers!
+        </p>
+      </div>
+
+      <!-- Games Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Game Card: Tic-Tac-Toe -->
+        <div class="bg-cyberCard rounded-2xl border border-cyan-500/30 p-5 flex flex-col justify-between hover:border-neonBlue transition-all shadow-lg hover:shadow-glow-cyan">
+          <div>
+            <div class="w-12 h-12 rounded-xl bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center text-2xl mb-4">
+              ⚔️
+            </div>
+            <div class="flex justify-between items-center mb-1">
+              <h2 class="font-arcade font-bold text-lg text-cyan-300">Tic-Tac-Toe AI</h2>
+              <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">Single / 2P</span>
+            </div>
+            <p class="text-slate-400 text-xs leading-relaxed mb-4">
+              Play vs unbeatable Smart Minimax Computer AI or pass-and-play with a friend in 2-Player mode.
+            </p>
+          </div>
+          <button onclick="launchGame('tictactoe')" class="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-arcade font-bold text-xs uppercase tracking-wider transition shadow-glow-cyan">
+            Launch Game 🚀
+          </button>
+        </div>
+
+        <!-- Game Card: Neon Snake -->
+        <div class="bg-cyberCard rounded-2xl border border-emerald-500/30 p-5 flex flex-col justify-between hover:border-neonGreen transition-all shadow-lg hover:shadow-glow-green">
+          <div>
+            <div class="w-12 h-12 rounded-xl bg-emerald-950/80 border border-emerald-500/40 flex items-center justify-center text-2xl mb-4">
+              🐍
+            </div>
+            <div class="flex justify-between items-center mb-1">
+              <h2 class="font-arcade font-bold text-lg text-emerald-300">Neon Snake</h2>
+              <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Classic Retro</span>
+            </div>
+            <p class="text-slate-400 text-xs leading-relaxed mb-4">
+              Eat neon apples, grow longer, beat local high-scores. Responsive touch swipe and mobile D-pad included!
+            </p>
+          </div>
+          <button onclick="launchGame('snake')" class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-arcade font-bold text-xs uppercase tracking-wider transition shadow-glow-green">
+            Launch Game 🚀
+          </button>
+        </div>
+
+        <!-- Game Card: Cyber Pong -->
+        <div class="bg-cyberCard rounded-2xl border border-pink-500/30 p-5 flex flex-col justify-between hover:border-neonPink transition-all shadow-lg hover:shadow-glow-pink">
+          <div>
+            <div class="w-12 h-12 rounded-xl bg-pink-950/80 border border-pink-500/40 flex items-center justify-center text-2xl mb-4">
+              🏓
+            </div>
+            <div class="flex justify-between items-center mb-1">
+              <h2 class="font-arcade font-bold text-lg text-pink-300">Cyber Pong AI</h2>
+              <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-pink-500/20 text-pink-300 border border-pink-500/30">Player vs Bot</span>
+            </div>
+            <p class="text-slate-400 text-xs leading-relaxed mb-4">
+              Fast-paced Cyber Ping-Pong against an adaptive AI paddle. Move with your finger touch or mouse cursor.
+            </p>
+          </div>
+          <button onclick="launchGame('pong')" class="w-full py-2.5 rounded-xl bg-pink-500 hover:bg-pink-400 text-slate-950 font-arcade font-bold text-xs uppercase tracking-wider transition shadow-glow-pink">
+            Launch Game 🚀
+          </button>
+        </div>
+      </div>
+
+      <!-- Offline Info Card -->
+      <div class="mt-8 bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3 text-center sm:text-left">
+          <div class="text-2xl p-2 bg-slate-800 rounded-lg">⚡</div>
+          <div>
+            <h4 class="text-sm font-semibold text-slate-200">Standalone & Offline PWA Ready</h4>
+            <p class="text-xs text-slate-400">All games run 100% inside your device memory without extra internet usage.</p>
+          </div>
+        </div>
+        <button onclick="triggerPwaPrompt()" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-cyan-500/30 text-xs font-semibold">
+          Add to Home Screen
+        </button>
+      </div>
+    </section>
+
+    <!-- VIEW: TIC-TAC-TOE -->
+    <section id="view-tictactoe" class="hidden flex-col items-center max-w-lg mx-auto space-y-4">
+      <div class="w-full flex justify-between items-center">
+        <button onclick="showView('hub')" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 flex items-center gap-1">
+          ← Arcade Hub
+        </button>
+        <span class="font-arcade text-sm font-bold text-cyan-400">TIC-TAC-TOE AI</span>
+        <button onclick="resetTicTacToe()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300">
+          🔄 Reset
+        </button>
+      </div>
+
+      <!-- Mode Selector -->
+      <div class="flex rounded-xl bg-slate-900 p-1 border border-slate-800 w-full">
+        <button id="ttt-mode-ai" onclick="setTicTacToeMode('ai')" class="flex-1 py-1.5 rounded-lg text-xs font-bold transition bg-cyan-500 text-slate-950 font-arcade">
+          VS SMART BOT
+        </button>
+        <button id="ttt-mode-2p" onclick="setTicTacToeMode('2p')" class="flex-1 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white font-arcade">
+          PASS & PLAY (2P)
+        </button>
+      </div>
+
+      <!-- Scoreboard -->
+      <div class="w-full grid grid-cols-3 gap-2 text-center bg-cyberCard border border-cyan-500/20 rounded-xl p-3">
+        <div>
+          <div id="ttt-p1-label" class="text-[10px] text-cyan-400 font-bold uppercase">PLAYER X</div>
+          <div id="ttt-score-x" class="text-xl font-arcade font-bold text-white">0</div>
+        </div>
+        <div>
+          <div class="text-[10px] text-slate-400 font-bold uppercase">DRAWS</div>
+          <div id="ttt-score-draw" class="text-xl font-arcade font-bold text-slate-400">0</div>
+        </div>
+        <div>
+          <div id="ttt-p2-label" class="text-[10px] text-pink-400 font-bold uppercase">BOT O</div>
+          <div id="ttt-score-o" class="text-xl font-arcade font-bold text-white">0</div>
+        </div>
+      </div>
+
+      <!-- Status Indicator -->
+      <div id="ttt-status" class="text-xs font-arcade font-semibold text-slate-300 tracking-wider">
+        Your Turn: [X]
+      </div>
+
+      <!-- 3x3 Grid -->
+      <div class="w-72 h-72 sm:w-80 sm:h-80 grid grid-cols-3 gap-3 p-3 bg-slate-900/90 rounded-2xl border border-cyan-500/30 shadow-glow-cyan">
+        <button onclick="handleTicTacToeClick(0)" class="tic-tac-cell rounded-xl bg-cyberCard border border-slate-700/60 font-arcade font-black text-3xl flex items-center justify-center text-white" id="cell-0"></button>
+        <button onclick="handleTicTacToeClick(1)" class="tic-tac-cell rounded-xl bg-cyberCard border border-slate-700/60 font-arcade font-black text-3xl flex items-center justify-center text-white" id="cell-1"></button>
+        <button onclick="handleTicTacToeClick(2)" class="tic-tac-cell rounded-xl bg-cyberCard border border-slate-700/60 font-arcade font-black text-3xl flex items-center justify-center text-white" id="cell-2"></button>
+        <button onclick="handleTicTacToeClick(3)" class="tic-tac-cell rounded-xl bg-cyberCard border border-slate-700/60 font-arcade font-black text-3xl flex items-center justify-center text-white" id="cell-3"></button>
+        <button onclick="handleTicTacToeClick(4)" class="tic-tac-cell rounded-xl bg-cyberCard border border-slate-700/60 font-arcade font-black text-3xl flex items-center justify-center text-white" id="cell-4"></button>
+        <button onclick="handleTicTacToeClick(5)" class="tic-tac-cell rounded-xl bg-cyberCard border border-slate-700/60 font-arcade font-black text-3xl flex items-center justify-center text-white" id="cell-5"></button>
+        <button onclick="handleTicTacToeClick(6)" class="tic-tac-cell rounded-xl bg-cyberCard border border-slate-700/60 font-arcade font-black text-3xl flex items-center justify-center text-white" id="cell-6"></button>
+        <button onclick="handleTicTacToeClick(7)" class="tic-tac-cell rounded-xl bg-cyberCard border border-slate-700/60 font-arcade font-black text-3xl flex items-center justify-center text-white" id="cell-7"></button>
+        <button onclick="handleTicTacToeClick(8)" class="tic-tac-cell rounded-xl bg-cyberCard border border-slate-700/60 font-arcade font-black text-3xl flex items-center justify-center text-white" id="cell-8"></button>
+      </div>
+    </section>
+
+    <!-- VIEW: NEON SNAKE -->
+    <section id="view-snake" class="hidden flex-col items-center max-w-lg mx-auto space-y-4">
+      <div class="w-full flex justify-between items-center">
+        <button onclick="showView('hub')" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 flex items-center gap-1">
+          ← Arcade Hub
+        </button>
+        <span class="font-arcade text-sm font-bold text-emerald-400">NEON SNAKE</span>
+        <button onclick="startSnakeGame()" class="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs">
+          ▶ Start
+        </button>
+      </div>
+
+      <!-- Snake Scoreboard -->
+      <div class="w-full flex justify-between items-center bg-cyberCard border border-emerald-500/20 rounded-xl px-4 py-2 text-xs font-arcade">
+        <div>Score: <span id="snake-current-score" class="text-emerald-400 font-bold text-sm">0</span></div>
+        <div>High Score: <span id="snake-high-score" class="text-amber-400 font-bold text-sm">0</span></div>
+      </div>
+
+      <!-- Canvas Area -->
+      <div class="relative rounded-2xl overflow-hidden border border-emerald-500/40 shadow-glow-green bg-slate-950">
+        <canvas id="snakeCanvas" width="320" height="320" class="block w-[300px] h-[300px] sm:w-[360px] sm:h-[360px]"></canvas>
+        
+        <div id="snake-overlay" class="absolute inset-0 bg-slate-950/85 flex flex-col items-center justify-center text-center p-4">
+          <div class="text-3xl mb-2">🐍</div>
+          <h3 class="font-arcade text-lg font-bold text-emerald-400 mb-1">NEON SNAKE</h3>
+          <p class="text-xs text-slate-400 mb-4 max-w-[200px]">Use Arrow Keys, Swipe gestures, or on-screen D-Pad below.</p>
+          <button onclick="startSnakeGame()" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-arcade font-bold text-xs uppercase tracking-wider shadow-glow-green">
+            Tap To Play
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile On-screen D-Pad -->
+      <div class="flex flex-col items-center gap-1 pt-1">
+        <button onclick="changeSnakeDir(0, -1)" class="w-12 h-11 bg-slate-800 active:bg-emerald-600 rounded-lg text-lg border border-slate-700 flex items-center justify-center shadow">
+          ▲
+        </button>
+        <div class="flex gap-4">
+          <button onclick="changeSnakeDir(-1, 0)" class="w-12 h-11 bg-slate-800 active:bg-emerald-600 rounded-lg text-lg border border-slate-700 flex items-center justify-center shadow">
+            ◀
+          </button>
+          <button onclick="changeSnakeDir(0, 1)" class="w-12 h-11 bg-slate-800 active:bg-emerald-600 rounded-lg text-lg border border-slate-700 flex items-center justify-center shadow">
+            ▼
+          </button>
+          <button onclick="changeSnakeDir(1, 0)" class="w-12 h-11 bg-slate-800 active:bg-emerald-600 rounded-lg text-lg border border-slate-700 flex items-center justify-center shadow">
+            ▶
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW: CYBER PONG -->
+    <section id="view-pong" class="hidden flex-col items-center max-w-lg mx-auto space-y-4">
+      <div class="w-full flex justify-between items-center">
+        <button onclick="showView('hub')" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 flex items-center gap-1">
+          ← Arcade Hub
+        </button>
+        <span class="font-arcade text-sm font-bold text-pink-400">CYBER PONG AI</span>
+        <button onclick="startPongGame()" class="px-3 py-1.5 rounded-lg bg-pink-500 hover:bg-pink-400 text-slate-950 font-bold text-xs">
+          ▶ Start
+        </button>
+      </div>
+
+      <!-- Pong Scoreboard -->
+      <div class="w-full flex justify-around items-center bg-cyberCard border border-pink-500/20 rounded-xl px-4 py-2 text-xs font-arcade">
+        <div>YOU: <span id="pong-score-p1" class="text-cyan-400 font-bold text-sm">0</span></div>
+        <div class="text-slate-500">VS</div>
+        <div>BOT AI: <span id="pong-score-ai" class="text-pink-400 font-bold text-sm">0</span></div>
+      </div>
+
+      <!-- Pong Canvas with Touch Area -->
+      <div class="relative rounded-2xl overflow-hidden border border-pink-500/40 shadow-glow-pink bg-slate-950">
+        <canvas id="pongCanvas" width="340" height="420" class="block w-[300px] h-[370px] sm:w-[340px] sm:h-[420px]"></canvas>
+
+        <div id="pong-overlay" class="absolute inset-0 bg-slate-950/85 flex flex-col items-center justify-center text-center p-4">
+          <div class="text-3xl mb-2">🏓</div>
+          <h3 class="font-arcade text-lg font-bold text-pink-400 mb-1">CYBER PONG</h3>
+          <p class="text-xs text-slate-400 mb-4 max-w-[200px]">Touch or Drag anywhere on the canvas to steer your bottom cyan paddle.</p>
+          <button onclick="startPongGame()" class="px-5 py-2 rounded-xl bg-pink-500 hover:bg-pink-400 text-slate-950 font-arcade font-bold text-xs uppercase tracking-wider shadow-glow-pink">
+            Start Match
+          </button>
+        </div>
+      </div>
+
+      <p class="text-[11px] text-slate-400 text-center">
+        Controls: Move finger left/right or slide mouse over canvas. First to 5 wins!
+      </p>
+    </section>
+  </main>
+
+  <footer class="w-full py-4 text-center border-t border-slate-800 text-xs text-slate-500 z-10">
+    <p>CyberArcade • 100% Client-side HTML5 Web Engine • Works Online & Offline</p>
+  </footer>
+
+  <script>
+    // Web Audio Synthesizer (No external mp3 assets needed)
+    let audioCtx = null;
+    let audioEnabled = true;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) audioCtx = new AudioContext();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playTone(freq, type = 'sine', duration = 0.1, gainVal = 0.15) {
+      if (!audioEnabled) return;
+      try {
+        initAudio();
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audi      osc.stop(audioCtx.currentTime + duration);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function playScoreSound() {
+    playTone(587.33, 'sine', 0.1, 0.15); // D5
+    setTimeout(() => playTone(880, 'sine', 0.15, 0.15), 100); // A5
+  }
+
+  function playHitSound() {
+    playTone(220, 'square', 0.05, 0.1); // A3
+  }
+
+  function playGameOverSound() {
+    playTone(300, 'sawtooth', 0.15, 0.2);
+    setTimeout(() => playTone(200, 'sawtooth', 0.2, 0.2), 150);
+    setTimeout(() => playTone(120, 'sawtooth', 0.3, 0.25), 350);
+  }
+
+  function playWinSound() {
+    playTone(523.25, 'triangle', 0.12, 0.15);
+    setTimeout(() => playTone(659.25, 'triangle', 0.12, 0.15), 120);
+    setTimeout(() => playTone(783.99, 'triangle', 0.12, 0.15), 240);
+    setTimeout(() => playTone(1046.50, 'triangle', 0.25, 0.2), 360);
+  }
+
+  // Offline PWA Service Worker & Manifest Support
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      const swCode = `
+        const CACHE_NAME = 'arcade-cache-v1';
+        self.addEventListener('install', (e) => {
+          e.waitUntil(
+            caches.open(CACHE_NAME).then((cache) => cache.addAll(['./']))
+          );
+        });
+        self.addEventListener('fetch', (e) => {
+          e.respondWith(
+            caches.match(e.request).then((res) => res || fetch(e.request))
+          );
+        });
+      `;
+      const blob = new Blob([swCode], { type: 'application/javascript' });
+      const swUrl = URL.createObjectURL(blob);
+      navigator.serviceWorker.register(swUrl).catch((err) => console.log('SW setup note:', err));
+    });
+  }
+</script>
+</body>
+</html>
